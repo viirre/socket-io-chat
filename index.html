@@ -1,0 +1,160 @@
+<!doctype html>
+<html class="no-js" lang="sv">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <title></title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" rel="stylesheet">
+        <style>
+	        #app {
+	        	max-width: 600px;
+	        	margin: 0 auto;
+	        	position: relative;
+	        	padding-top:60px;
+	        }
+	        #wrap {
+				border: 1px solid #eee;
+	        	margin: 0;
+			    padding: 0;
+			    height: 100%;
+			    overflow: auto;
+	        }
+	        h1 {
+	        	font-size: 24px;
+	        	text-align: center;
+	        }
+	        .new {
+	        	position: absolute;
+	        	top:0;
+	        	width: 100%;
+	        }
+			#chat {
+				border:1px solid #ccc;
+				background: #f9f9f9;
+				font-size: 20px;
+				padding: 0 10px;
+				height: 50px;
+				position: fixed;
+				top: 0;
+				left: 0;
+				width: 80%;
+			}
+			#send {
+				width:20%;
+				height: 50px;
+				position: fixed;
+				top:0;
+				right:0;
+				padding: 0;
+				font-size: 20px;
+				border-radius: 0;
+			}
+
+			.posts {
+			}
+			.post .name {
+				margin:0 0 5px 0;
+				font-size: 15px;
+				font-weight: bold;
+				color: #222;
+			}
+			.post .content {
+				margin: 0;
+				color: #999;
+			}
+			.post {
+				padding: 15px;
+				border-bottom: 1px solid #eee;
+			}
+
+        </style>
+    </head>
+    <body id="app">
+    	<div v-if=" ! name">
+    		<h3>Welcome! Enter your name:</h3>
+	     	<form v-on="submit: enter">
+	      		<input autocomplete="off" type="text" v-model="profile" class="form-control">
+	      		<br><button class="btn btn-primary">Start chatting</button>
+	    	</form>
+    	</div>
+    	<div v-if="name" id="wrap">
+    		<h1>Virres chat</h1>
+	     	<form v-on="submit: send">
+	      		<input id="chat" autocomplete="off" type="text" v-model="message" placeholder="Write something funny..">
+	      		<button id="send" class="btn btn-primary">Send</button>
+	    	</form>
+	    	<div id="posts" class="posts">
+	    		<div v-repeat="message: messages" class="post">
+	    			<h3 class="name">{{ message.name }}</h3>
+	    			<p class="content">{{ message.content }}</p>
+	    		</div>
+	    	</ul>
+	    </div>	
+        <script src="https://cdn.socket.io/socket.io-1.3.5.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/0.12.16/vue.min.js"></script>
+        <script>
+        	var socket = io();
+
+			var body = document.getElementById("app"), height = window.innerHeight;
+			body.style.height=(height)+'px';
+
+        	new Vue({
+  				el: '#app',
+				data: {
+					name: '',
+					profile: '',
+					messages: [], 
+				    message: ''
+				},
+				ready: function() {
+					
+					// Welcome
+					socket.on('chat.welcome', function(messages){
+						console.log("Welcome new user!");
+				    	this.messages = messages;
+				  	}.bind(this));
+
+					// New message
+					socket.on('chat.message', function(msg){
+						console.log("received new message", msg);
+				    	this.messages.push(msg);
+
+						// Allow Vue to render DOM after append
+						this.$nextTick(function () {
+						  	this.scrollToBottom();	
+						}.bind(this));
+
+				  	}.bind(this));
+				},
+				methods: {
+
+
+					scrollToBottom: function() {
+						var wrap = document.getElementById("wrap");				
+						wrap.scrollTop = wrap.scrollHeight;
+					},
+
+					enter: function(e) {
+						e.preventDefault();
+						this.name = this.profile;
+					},
+
+					send: function(e) {
+						e.preventDefault();
+						console.log("sending a message", this.message);
+
+						socket.emit('chat.message', {
+							content: this.message,
+							name: this.name
+						});
+
+						//this.messages.push(this.message);
+						this.message = '';
+					}
+				}
+			});
+        </script>
+    </body>
+</html>
