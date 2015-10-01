@@ -1,0 +1,187 @@
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title></title>
+    <link href='http://fonts.googleapis.com/css?family=Lato:400,700,900' rel='stylesheet' type='text/css'>
+    <link href='css/app.css' rel='stylesheet' type='text/css'>
+</head>
+<body id="app">
+    <div v-if=" ! name">
+        <form v-on="submit: enter">
+            <input autocomplete="off" type="text" v-model="profile" class="form-control">
+            <br><button class="btn btn-primary">Start chatting</button>
+        </form>
+    </div>
+    <div v-if="name">
+        <div class="header">
+            <div class="team-menu">chat</div>
+            <div class="channel-menu">
+                <span class="channel-menu_name">
+                    <span class="channel-menu_prefix">#</span>
+                    general
+                </span>
+            </div>
+        </div>
+        <div class="main">
+            <div class="listings">
+                <div class="listings_channels">
+                    <h2 class="listings_header">Channels</h2>
+                    <ul class="channel_list">
+                        <li class="channel active ">
+                            <a class="channel_name">
+                                <span class="unread">0</span>
+                                <span>
+                                    <span class="prefix">#</span>
+                                    hk
+                                </span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="listings_direct-messages">
+                    <h2 class="listings_header">People</h2>
+                    <ul class="channel_list">
+                        <li class="channel"  v-repeat="user: users">
+                            <a class="channel_name">
+                                <span class="unread">0</span>
+                                <span>
+                                    <span class="prefix"></span>
+                                    {{ user }}
+                                </span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="message-history" id="message-box">
+                <div class="message" v-repeat="message: messages">
+                    <a href="" class="message_profile-pic"></a>
+                    <a href="" class="message_username">{{ message.name }}</a>
+                    <span class="message_timestamp">{{ formatDate(message.date) }}</span>
+                    <span class="message_star"></span>
+                    <span class="message_content">{{ message.content }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="footer">
+            <div class="user-menu">
+                <span class="user-menu_profile-pic"></span>
+                <span class="user-menu_username">danyll</span>
+                <span class="connection_status">online</span>
+            </div>
+            <div class="input-box">
+                <form  v-on="submit: send">
+                    <input type="text" class="input-box_text" v-model="message" placeholder="Write something funny {{ name }}..">
+                </form> 
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.socket.io/socket.io-1.3.5.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/0.12.16/vue.min.js"></script>
+    <script src="http://momentjs.com/downloads/moment.min.js"></script>
+    <script>
+        var socket = io();
+
+        //var body = document.getElementById("app"), height = window.innerHeight;
+        //body.style.height=(height)+'px';
+
+        function createCookie(name,value,days) {
+            if (days) {
+                var date = new Date();
+                date.setTime(date.getTime()+(days*24*60*60*1000));
+                var expires = "; expires="+date.toGMTString();
+            }
+            else var expires = "";
+            document.cookie = name+"="+value+expires+"; path=/";
+        }
+        function readCookie(name) {
+            var nameEQ = name + "=";
+            var ca = document.cookie.split(';');
+            for(var i=0;i < ca.length;i++) {
+                var c = ca[i];
+                while (c.charAt(0)==' ') c = c.substring(1,c.length);
+                if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
+            }
+            return null;
+        }
+
+        new Vue({
+            el: '#app',
+            data: {
+                name: '',
+                profile: '',
+                messages: [], 
+                users: [],
+                message: ''
+            },
+            ready: function() {
+                
+                if (readCookie('chat.name')) {
+                    //this.name = readCookie('chat.name');
+                }
+
+                // Welcome
+                socket.on('chat.welcome', function(data){
+                    console.log("Welcome new user!");
+                    this.messages = data.messages;
+                    this.users = data.users;
+                }.bind(this));
+
+                // Updated userlist (connect/disconnect)
+                socket.on('chat.users', function(users){
+                    console.log("got users fro server", users);
+                    this.users = users;
+                }.bind(this));
+
+                // New message
+                socket.on('chat.message', function(msg){
+                    console.log("received new message", msg);
+                    this.messages.push(msg);
+
+                    // Allow Vue to render DOM after append
+                    // then scroll to bottom to reveal new msg
+                    this.$nextTick(function () {
+                        this.scrollToBottom();  
+                    }.bind(this));
+
+                }.bind(this));
+            },
+            methods: {
+
+
+                formatDate: function(date) {
+                    return moment(date).startOf('hour').fromNow();
+                },
+
+                scrollToBottom: function() {
+                    var messageBox = document.getElementById("message-box");             
+                    messageBox.scrollTop = messageBox.scrollHeight;
+                },
+
+                enter: function(e) {
+                    e.preventDefault();
+                    this.name = this.profile;
+
+                    createCookie('chat.name', this.profile, 2);
+                    socket.emit('chat.user', this.name);
+                },
+
+                send: function(e) {
+                    e.preventDefault();
+                    console.log("sending a message", this.message);
+
+                    socket.emit('chat.message', {
+                        content: this.message,
+                        name: this.name,
+                        date: new Date()
+                    });
+
+                    //this.messages.push(this.message);
+                    this.message = '';
+                }
+            }
+        });
+    </script>
+</body>
+</html>
