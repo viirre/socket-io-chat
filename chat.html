@@ -56,12 +56,22 @@
                 </div>
             </div>
             <div class="message-history" id="message-box">
-                <div class="message" v-repeat="message: messages">
-                    <img v-attr="src: avatar(message.user)" class="message_profile-pic"/>
-                    <a href="" class="message_username">{{ message.user.name }}</a>
-                    <span class="message_timestamp">{{ formatDate(message.date) }}</span>
-                    <span class="message_star"></span>
-                    <span class="message_content">{{ message.content }}</span>
+                <div v-repeat="message: messages">
+
+                    <div v-if="message.msg_type == 'user'">
+                        <div class="message">
+                            <img v-attr="src: avatar(message.user)" class="message_profile-pic"/>
+                            <a href="" class="message_username">{{ message.user.name }}</a>
+                            <span class="message_timestamp">{{ formatDate(message.date) }}</span>
+                            <span class="message_star"></span>
+                            <span class="message_content">{{ message.content }}</span>
+                        </div>
+                    </div>  
+                    <div v-if="message.msg_type == 'system'">
+                        <div class="system-message">
+                            <span class="message_content">{{ message.content }}</span> <span class="message_timestamp">{{ formatDate(message.date) }}</span>
+                        </div>
+                    </div>  
                 </div>
             </div>
         </div>
@@ -84,6 +94,8 @@
     <script src="/js/md5.min.js"></script>
     <script>
         var socket = io();
+
+        // createCookie('chat.user', null, 2);
 
         function createCookie(name,value,days) {
             if (days) {
@@ -120,9 +132,10 @@
             },
             ready: function() {
 
-                
-                if (readCookie('chat.user')) {
-                    var cookieContent = JSON.parse(readCookie('chat.user'));
+                var cookie = readCookie('chat.user');
+                var cookieContent = JSON.parse(readCookie('chat.user'));
+                if (cookieContent) {
+                    
                     console.log("cookie! - enter!", cookieContent);
                     this.user = cookieContent;
                     this.enter();
@@ -202,7 +215,7 @@
 
                     socket.emit('chat.message', {
                         content: this.message,
-                        email: this.user.email,
+                        user: this.user,
                         date: new Date()
                     });
 

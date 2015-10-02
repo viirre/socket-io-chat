@@ -246,6 +246,13 @@ body {
   padding: .25rem 2rem .1rem 3rem;
   min-height: 36px;
 }
+.system-message {
+  position: relative;
+  margin-top: .5rem;
+  padding: .25rem 2rem .1rem 0;
+  min-height: 20px;
+  font-size: 14px;
+}
 
 /* line 11, ../tests/sass/components/_message.scss */
 .message_profile-pic {
