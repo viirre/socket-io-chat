@@ -85,6 +85,10 @@ body {
   padding-bottom: 64px;
 }
 
+
+.hidden {
+  display:none;
+}
 /* line 23, ../tests/sass/_layout.scss */
 .header {
   position: fixed;
@@ -253,8 +257,6 @@ body {
   border-radius: 0.2rem;
   width: 36px;
   height: 36px;
-  background-image: url("http://i.imgur.com/LikUNLc.png");
-  background-size: cover;
 }
 
 /* line 22, ../tests/sass/components/_message.scss */
@@ -314,8 +316,6 @@ body {
   border-radius: 0.2rem;
   width: 48px;
   height: 48px;
-  background-image: url("http://i.imgur.com/LikUNLc.png");
-  background-size: cover;
   margin-right: 8px;
 }
 
@@ -369,4 +369,27 @@ body {
   bottom: 0;
   min-height: 41px !important;
   padding: 9px 5px 9px 8px;
+}
+
+
+.enter-form {
+  margin: 100px auto 0 auto;
+    width: 400px;
+}
+.enter-form input {
+  border:1px solid #eee;
+  background:white;
+  padding:10px;
+  height:50px;
+  width:100%;
+  font-size:18px;
+  margin-bottom:10px;
+}
+.enter-form button {
+  width:100%;
+  background: #eee;
+  border:1px solid #e6e6e6;
+  font-size: 18px;
+  padding: 10px 20px;
+  cursor: pointer;
 }

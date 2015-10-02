@@ -7,13 +7,14 @@
     <link href='css/app.css' rel='stylesheet' type='text/css'>
 </head>
 <body id="app">
-    <div v-if=" ! name">
-        <form v-on="submit: enter">
-            <input autocomplete="off" type="text" v-model="profile" class="form-control">
-            <br><button class="btn btn-primary">Start chatting</button>
+    <div v-el="enterForm" class="hidden">
+        <form v-on="submit: submitEnter" class="enter-form">
+            <input autocomplete="off" type="text" v-model="name" placeholder="Your name">
+            <input autocomplete="off" type="email" v-model="email" placeholder="Your email">
+            <br><button type="submit" class="btn btn-primary">Start chatting</button>
         </form>
     </div>
-    <div v-if="name">
+    <div v-el="wrapper"  class="hidden">
         <div class="header">
             <div class="team-menu">chat</div>
             <div class="channel-menu">
@@ -33,7 +34,7 @@
                                 <span class="unread">0</span>
                                 <span>
                                     <span class="prefix">#</span>
-                                    hk
+                                    general
                                 </span>
                             </a>
                         </li>
@@ -47,7 +48,7 @@
                                 <span class="unread">0</span>
                                 <span>
                                     <span class="prefix"></span>
-                                    {{ user }}
+                                    {{ user.name }}
                                 </span>
                             </a>
                         </li>
@@ -56,8 +57,8 @@
             </div>
             <div class="message-history" id="message-box">
                 <div class="message" v-repeat="message: messages">
-                    <a href="" class="message_profile-pic"></a>
-                    <a href="" class="message_username">{{ message.name }}</a>
+                    <img v-attr="src: avatar(message.user)" class="message_profile-pic"/>
+                    <a href="" class="message_username">{{ message.user.name }}</a>
                     <span class="message_timestamp">{{ formatDate(message.date) }}</span>
                     <span class="message_star"></span>
                     <span class="message_content">{{ message.content }}</span>
@@ -66,13 +67,13 @@
         </div>
         <div class="footer">
             <div class="user-menu">
-                <span class="user-menu_profile-pic"></span>
-                <span class="user-menu_username">danyll</span>
+                <img v-attr="src: avatar(user)" class="user-menu_profile-pic"/>
+                <span class="user-menu_username">{{ user.name }}</span>
                 <span class="connection_status">online</span>
             </div>
             <div class="input-box">
                 <form  v-on="submit: send">
-                    <input type="text" class="input-box_text" v-model="message" placeholder="Write something funny {{ name }}..">
+                    <input type="text" class="input-box_text" v-model="message" placeholder="Write something funny {{ name }}.." autofocus="true">
                 </form> 
             </div>
         </div>
@@ -80,11 +81,9 @@
     <script src="https://cdn.socket.io/socket.io-1.3.5.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/0.12.16/vue.min.js"></script>
     <script src="http://momentjs.com/downloads/moment.min.js"></script>
+    <script src="/js/md5.min.js"></script>
     <script>
         var socket = io();
-
-        //var body = document.getElementById("app"), height = window.innerHeight;
-        //body.style.height=(height)+'px';
 
         function createCookie(name,value,days) {
             if (days) {
@@ -109,16 +108,27 @@
         new Vue({
             el: '#app',
             data: {
+                user: {
+                    name: '',
+                    email: ''
+                },
                 name: '',
-                profile: '',
+                email: '',
                 messages: [], 
                 users: [],
                 message: ''
             },
             ready: function() {
+
                 
-                if (readCookie('chat.name')) {
-                    //this.name = readCookie('chat.name');
+                if (readCookie('chat.user')) {
+                    var cookieContent = JSON.parse(readCookie('chat.user'));
+                    console.log("cookie! - enter!", cookieContent);
+                    this.user = cookieContent;
+                    this.enter();
+                } else {
+                    console.log("no cookie - show enter form");
+                    this.$$.enterForm.classList.remove('hidden');
                 }
 
                 // Welcome
@@ -136,7 +146,7 @@
 
                 // New message
                 socket.on('chat.message', function(msg){
-                    console.log("received new message", msg);
+                    console.log("received new message", msg, msg.user);
                     this.messages.push(msg);
 
                     // Allow Vue to render DOM after append
@@ -147,11 +157,18 @@
 
                 }.bind(this));
             },
+
+
+
             methods: {
 
+                avatar: function(user) {
+                    console.log("trying to fetch image for user:", user.name);
+                    return 'https://www.gravatar.com/avatar/' + md5(user.email);
+                },
 
                 formatDate: function(date) {
-                    return moment(date).startOf('hour').fromNow();
+                    return moment(date).fromNow();
                 },
 
                 scrollToBottom: function() {
@@ -159,12 +176,24 @@
                     messageBox.scrollTop = messageBox.scrollHeight;
                 },
 
-                enter: function(e) {
+                submitEnter: function(e) {
                     e.preventDefault();
-                    this.name = this.profile;
+                    this.user.name = this.name;
+                    this.user.email = this.email;
+                    createCookie('chat.user', JSON.stringify(this.user), 2);
 
-                    createCookie('chat.name', this.profile, 2);
-                    socket.emit('chat.user', this.name);
+                    this.enter();
+                },
+
+                enter: function() {
+
+                    console.log("entering chat room..");
+                    this.$$.wrapper.classList.remove('hidden');
+                    this.$$.enterForm.classList.add('hidden');
+
+                    socket.emit('chat.user', this.user);
+
+                    this.scrollToBottom();  
                 },
 
                 send: function(e) {
@@ -173,11 +202,10 @@
 
                     socket.emit('chat.message', {
                         content: this.message,
-                        name: this.name,
+                        email: this.user.email,
                         date: new Date()
                     });
 
-                    //this.messages.push(this.message);
                     this.message = '';
                 }
             }
